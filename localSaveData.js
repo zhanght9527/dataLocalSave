@@ -2,7 +2,7 @@
 /*
     使用说明：
     1. 引入//s.thsi.cn/js/m/business/localSaveData.js
-    2. 可以调用dataLocalSave.init先进行配置。
+    2. 可以调用初始化dataLocalSave先进行配置。
     可选参数：
     key: 存入localStorage的key值，默认为dataLocalSave；
     delTime：清除存储值的时间，默认为10分钟，单位为毫秒；
@@ -16,58 +16,53 @@
     接收2个参数，第一个为需要改变的值，如果之前设置isObj为true,必须传入完整的存入对象。
     第二个参数为改变的值。如果之前设置isObj为true，这里需要传入的也是一个Object。
     例子：
-    1. 可选：
-    dataLocalSave.init({
+    1. 初始化：
+    var dataLocalTest = new dataLocalSave({
         key: 'dataLocal', // 如果不设置默认为'dataLocalSave'
         delTime: 100000, // 如果不设置默认为600000
         isObj: true  // 传入存储的是否为对象，默认为false
+        infiniteTime: false  // 是否没有删除时间，默认为false
     })
     2. 设置
-    dataLocalSave.setData('东方证券')
+    dataLocalTest.setData('东方证券')
     或
-    dataLocalSave.setData({name:'东方财富',num:15324})
+    dataLocalTest.setData({name:'东方财富',num:15324})
     3. 获取
-    dataLocalSave.getData('东方证券',function(res){
+    dataLocalTest.getData('东方证券',function(res){
         console.log('数据已过期或未找到')
         console.log(res)
     })
     返回： '东方证券'
     或
-    dataLocalSave.getData('东方财富',function(res){
+    dataLocalTest.getData('东方财富',function(res){
         console.log('数据已过期或未找到')
         console.log(res)
     })
     返回： [{name:'东方财富',num:15324}]
     4. 改变
-    dataLocalSave.changeData('东方证券','东方证券1')
-    dataLocalSave.changeData({name:'东方财富',num:15324},{name:'东方财富',num:12345})
+    dataLocalTest.changeData('东方证券','东方证券1')
+    dataLocalTest.changeData({name:'东方财富',num:15324},{name:'东方财富',num:12345})
 */
 ;(function(win){
-    var GLOBAL = {
-        key: 'dataLocalSave',
-        delTime: 600000,
-        isObj: false,
-        infiniteTime: false
-    }
     function dataLocalSave(){
         this.init.apply(this, arguments);
     }
     dataLocalSave.prototype = {
-        init: function (obj) {
-            obj.key ? GLOBAL.key = obj.key : '';
-            obj.delTime ?  GLOBAL.delTime = obj.delTime : '';
-            obj.isObj ?  GLOBAL.isObj = obj.isObj : '';
-            obj.infinite ?  GLOBAL.infinite = obj.infinite : '';
+        init: function (params) {
+            this.key = params.key ? params.key : 'dataLocalSave'
+            this.delTime = params.delTime ? params.delTime : 600000
+            this.isObj = params.isObj ? params.isObj : false
+            this.infiniteTime = params.infiniteTime ? params.infiniteTime : false
         },
         setData: function (value) {
             var curTime = new Date().getTime(),
-                data = JSON.parse(localStorage.getItem(GLOBAL.key)),
+                data = JSON.parse(localStorage.getItem(this.key)),
                 haveData,
                 _this = this;
-            if ((typeof(value) === 'object' && GLOBAL.isObj) || (typeof(value) !== 'object' && !GLOBAL.isObj)) {
+            if ((typeof(value) === 'object' && _this.isObj) || (typeof(value) !== 'object' && !_this.isObj)) {
                 if (data) {
                     data.forEach(function (item) {
-                        if (GLOBAL.isObj) {
+                        if (_this.isObj) {
                             if (_this.diff(item.value,value)) {
                                 haveData = true;
                             }
@@ -84,23 +79,24 @@
                     } else {
                         data = [{value:value,curTime:curTime}]
                     }
-                    localStorage.setItem(GLOBAL.key,JSON.stringify(data));
+                    localStorage.setItem(_this.key,JSON.stringify(data));
                 }
             }
         },
         getData: function (value, callback) {
-            var data = JSON.parse(localStorage.getItem(GLOBAL.key)),
+            var data = JSON.parse(localStorage.getItem(this.key)),
                 nowTime = new Date().getTime(),
                 checkVal = [],
                 haveData = false,
+                _this = this,
                 vindex;
             if (data) {
                 data.forEach(function (item,index) {
-                    if (GLOBAL.isObj) {
+                    if (_this.isObj) {
                         for (var val in item.value) {
                             if (item.value[val] === value) {
                                 haveData = true;
-                                if (nowTime - item.curTime <= GLOBAL.delTime || GLOBAL.infinite) {
+                                if (nowTime - item.curTime <= _this.delTime || _this.infinite) {
                                     checkVal.push(item.value);
                                 } else {
                                     callback ? callback(item.value) : '';
@@ -111,7 +107,7 @@
                     } else {
                         if (item.value === value) {
                             haveData = true;
-                            if (nowTime - item.curTime <= GLOBAL.delTime || GLOBAL.infinite) {
+                            if (nowTime - item.curTime <= _this.delTime || _this.infinite) {
                                 checkVal = value;
                             } else {
                                 callback ? callback(item.value) : '';
@@ -132,11 +128,11 @@
             }
         },
         changeData: function (oldVal, newVal) {
-            var data = JSON.parse(localStorage.getItem(GLOBAL.key)),
+            var data = JSON.parse(localStorage.getItem(this.key)),
                 _this = this,
                 val,
                 vindex;
-            if (GLOBAL.isObj) {
+            if (_this.isObj) {
                 if (oldVal instanceof Object) {
                     val = oldVal;
                 } else {
@@ -145,11 +141,11 @@
             }
             if (data) {
                 data.forEach(function(item,index){
-                    if (GLOBAL.isObj) {
+                    if (_this.isObj) {
                         if (_this.diff(item.value,val)) {
                             vindex = index;
                         }
-                    } else if (!GLOBAL.isObj && typeof(val) !== 'object'){
+                    } else if (!_this.isObj && typeof(val) !== 'object'){
                         if (item.value == val) {
                             vindex = index;
                         }
@@ -158,13 +154,13 @@
             }
             if (vindex != undefined) {
                 data.splice(vindex, 1, {value:newVal,curTime:new Date().getTime()});
-                localStorage.setItem(GLOBAL.key,JSON.stringify(data));
+                localStorage.setItem(_this.key,JSON.stringify(data));
             }
         },
         delData: function (index) {
-            var data = JSON.parse(localStorage.getItem(GLOBAL.key));
+            var data = JSON.parse(localStorage.getItem(this.key));
             data.splice(index, 1);
-            localStorage.setItem(GLOBAL.key,JSON.stringify(data));
+            localStorage.setItem(this.key,JSON.stringify(data));
         },
         diff: function (obj1,obj2){
             var o1 = obj1 instanceof Object;
